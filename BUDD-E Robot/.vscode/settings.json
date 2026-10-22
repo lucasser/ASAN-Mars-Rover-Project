@@ -1,6 +1,0 @@
-{
-    "clangd.arguments": [
-        "--compile-commands-dir=/home/flames/OpenCloud/School/MEGN200/Projects/Project1/BUDD-E Robot/.cache/clangd",
-        "--query-driver=/home/flames/.platformio/packages/toolchain-*/bin/*,/home/flames/.platformio/packages/tool-*/bin/*"
-    ]
-}
