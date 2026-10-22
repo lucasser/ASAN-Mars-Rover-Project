@@ -1,20 +1,25 @@
 #include <Arduino.h>
+#include <WString.h>
 
-// put function declarations here:
-int myFunction(int, int);
+int joystick[2] = {A0, A1}; //x, y
+
+int button = 2;
+
+int pot = A2;
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+	Serial.begin(9600);
+	pinMode(button, INPUT_PULLUP);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  	Serial.print("Joystick X: ");
+  	Serial.println(analogRead(joystick[0]));
+  	Serial.print("Joystick Y: ");
+  	Serial.println(analogRead(joystick[1]));
+	Serial.print("Auton?: ");
+  	Serial.println((digitalRead(button)) ? "No" : "Yes");
+	Serial.print("Throttle: ");
+  	Serial.println(analogRead(pot));
+	delay(100);
 }
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
-}
-
-int test;
