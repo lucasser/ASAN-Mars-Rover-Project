@@ -1,4 +1,5 @@
-#include "DistanceSensor.h"
+#include "USensor.h"
+#include "api/Common.h"
 
 struct MotorData {
 		int fwd, rev, speed;
@@ -21,9 +22,19 @@ class HBMotor {	 // H-Bridge Motor
 			pinMode(speed, OUTPUT);
 		};
 
-		void getSpeed(int newSpeed);
-		int setSpeed();
-		void start();
+		int setSpeed(int speedval) {
+			Serial.println(speedval);
+			digitalWrite(fwd, (speedval > 10));
+			digitalWrite(rev, (speedval < -10));
+			analogWrite(speed, abs(speedval));
+		};
+
+		void getSpeed();
+
+		void start(bool rev) {
+
+		};
+
 		void stop();
 };
 
@@ -33,30 +44,34 @@ struct SensorData {
 
 class USensor {
 	private:
-		DistanceSensor sensor;
+		Ultrasonic sensor;
 		int dist;
 
 	public:
-		void init(SensorData data) { sensor.init(data.trig, data.echo); }
+		void init(SensorData data) { sensor.begin(data.trig, data.echo); }
+
+		unsigned long prevrun;
 
 		void tick() {
-			int result = sensor.tick();
-
-			// tick() returns NREADY if not ready, or
-			// ERR on error (like timeout)
-			if (result == sensor.NREADY) return;
-
-			if (result < -1) return;
-			dist = result;
+			if (millis() - prevrun < 50) return;
+			prevrun = millis();
+			dist	= sensor.readDistanceCM();
+			prevrun = millis();
 		}
 
 		int getDist() { return dist; }
+};
+
+struct RoverData {
+		int Jx, Jy, Throttle;
+		bool Auton;
 };
 
 class Rover {
 	private:
 		HBMotor motors[2];
 		USensor sensor;
+		RoverData data;
 
 	public:
 		void init(MotorData motorData[2], SensorData sensorData) {
@@ -65,10 +80,29 @@ class Rover {
 			sensor.init(sensorData);
 		}
 
+		unsigned long prevrun;
+
 		void tick() {
-			// if (millis() - prevrun < 10) return; // Guard to not spam tick
 			sensor.tick();
+			if (millis() - prevrun < 50) return;
+			if (data.Auton) {
+				if (sensor.getDist() < 10) {
+					motors[0].setSpeed(-100);
+					motors[1].setSpeed(-100);
+				} else {
+					motors[0].setSpeed(0);
+					motors[1].setSpeed(0);
+				}
+			} else {
+				int Jx = map(data.Jx, 0, 1023, -255, 255);
+				int Jy = map(data.Jy, 0, 1023, -255, 255);
+				motors[0].setSpeed(constrain(Jx - Jy, -255, 255));
+				motors[1].setSpeed(constrain(Jx + Jy, -255, 255));
+			}
+			prevrun = millis();
 		}
+
+		void sendData(RoverData data) { this->data = data; }
 
 		int getDist() { return sensor.getDist(); }
 

@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include <cstdlib>
+#include "IPAddress.h"
 #include "Rover.h"
 #include "Wifi.h"
 
@@ -15,8 +17,12 @@ struct DataPacket {
 
 		int Jx;
 		int Jy;
+		int throttle;
+
+		bool auton;
 
 		int sensor;
+		// Add ctor for sensor
 };
 
 DataPacket data;
@@ -37,7 +43,8 @@ unsigned long prevrun;
 void tick() {
 	if (millis() - prevrun < 20) return;
 	prevrun = millis();
-	if (wifi.active()) wifi.setData({PacketType::State, 0, 0, rover.getDist()});
+	if (wifi.active())
+		wifi.setData({PacketType::State, 0, 0, 0, 0, rover.getDist()});
 }
 
 void loop() {
@@ -45,11 +52,7 @@ void loop() {
 	rover.tick();
 	if (wifi.available()) {
 		data = wifi.getData();
-		Serial.print("Jx: ");
-		Serial.println(data.Jx);
-		Serial.print("Jy: ");
-		Serial.println(data.Jy);
+		rover.sendData({data.Jx, data.Jy, data.throttle, data.auton});
 	}
-	rover.tick();
 	tick();
 }

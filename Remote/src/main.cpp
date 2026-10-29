@@ -10,6 +10,9 @@ struct DataPacket {
 
 		int Jx;
 		int Jy;
+		int throttle;
+
+		bool auton;
 
 		int sensor;
 };
@@ -41,8 +44,10 @@ JoystickData readJoystick() {
 void setup() {
 	Serial.begin(9600);
 	setPinmodes();
-	lcd.begin(16, 2);  // set up the LCD's number of columns and rows:
 	wifi.begin(ssid, pwd, WifiControllerType::Server);
+	lcd.begin(16, 2);  // set up the LCD's number of columns and rows:
+	lcd.setCursor(0, 0);
+	lcd.print("Distance: ");
 }
 
 unsigned long prevrun;
@@ -51,7 +56,8 @@ void tick() {
 	if (millis() - prevrun < 20) return;
 	prevrun = millis();
 	if (wifi.active())
-		wifi.setData({PacketType::Command, readJoystick().x, readJoystick().y});
+		wifi.setData({PacketType::Command, readJoystick().x, readJoystick().y,
+					  !digitalRead(autonSwitch)});
 }
 
 void loop() {
@@ -59,7 +65,8 @@ void loop() {
 	tick();
 	if (wifi.available()) {
 		data = wifi.getData();
-		Serial.print("Sensor: ");
-		Serial.println(data.sensor);
+		lcd.setCursor(0, 1);
+		lcd.print(data.sensor);
+		lcd.print("                      ");
 	}
 }

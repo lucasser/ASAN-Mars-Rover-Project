@@ -21,13 +21,16 @@ class WifiController {
 		const String clientHostname = "rover\n";
 		const String serverHostname = "remote\n";
 
+		char* clientIP = "192.168.4.2";
+		char* serverIP = "192.168.4.1";
+
 		DataPacket outboundData;
 		bool outboundNew = false;
 		DataPacket inboundData;
 		bool inboundNew = false;
 
 		class handshake;
-		handshake handshake = {dir == WifiControllerType::Client, this};
+		handshake handshake = {this};
 
 		unsigned long lastConnectionAttempt;
 
@@ -58,7 +61,6 @@ class WifiController {
 			} else {
 				Serial.println("\nClient: Failed to connect!");
 			}
-			lastConnectionAttempt = millis();
 		}
 
 	public:
@@ -78,6 +80,8 @@ class WifiController {
 			this->ssid	   = ssid;
 			this->password = password;
 			this->dir	   = dir;
+
+			handshake.client = dir == WifiControllerType::Client;
 
 			if (dir == WifiControllerType::Server) {
 				Serial.println("Server: Starting up...");
@@ -114,28 +118,37 @@ class WifiController {
 
 		void tick() {
 			switch (dir) {
-				case WifiControllerType::Server: handshake.tickServer();
-				case WifiControllerType::Client: handshake.tickClient();
+				case WifiControllerType::Server:
+					{
+						handshake.tickServer();
+						break;
+					}
+				case WifiControllerType::Client:
+					{
+						handshake.tickClient();
+						break;
+					}
 			}
 
-			if (!handshake.handshooked && dir == WifiControllerType::Client) {
+			if (!handshake.handshooked && dir == WifiControllerType::Client
+				&& millis() - lastConnectionAttempt
+					   > handshake.MAX_HANDSHAKE_TIME * 2) {
 				Serial.println("Handshake Failed.");
 				if (WiFi.status() != WL_CONNECTED) {
 					Serial.println(
 						"Client: WiFi disconnected! Reconnecting...");
-					if (millis() - lastConnectionAttempt
-						> handshake.MAX_HANDSHAKE_TIME * 2)
-						clientConnectToWiFi();
+					clientConnectToWiFi();
 				} else {
 					Serial.println("Client: WiFi OK.");
 				}
+				lastConnectionAttempt = millis();
 			}
 
 			if (outboundNew && handshake.handshooked) {
 				outboundNew = false;
 				sendData(outboundData);
 			}
-			if (udp.available()) readData();
+			readData();
 		}
 
 		bool available() { return inboundNew; }
@@ -156,9 +169,15 @@ class WifiController {
 		bool sendData(const DataPacket& data) {
 			switch (dir) {
 				case WifiControllerType::Server:
-					udp.beginPacket(clientHostname.c_str(), client_port);
+					{
+						udp.beginPacket(clientIP, client_port);
+						break;
+					}
 				case WifiControllerType::Client:
-					udp.beginPacket(serverHostname.c_str(), server_port);
+					{
+						udp.beginPacket(serverIP, server_port);
+						break;
+					}
 			}
 			udp.write((uint8_t*)&data, sizeof(DataPacket));
 			return udp.endPacket();
@@ -177,7 +196,7 @@ class WifiController {
 											   // DataPacket
 
 				if (inboundData.type == PacketType::Handshake) {
-					handshake.recieved();
+					handshake.received();
 				} else {
 					inboundNew = true;
 				}
@@ -185,10 +204,10 @@ class WifiController {
 		}
 
 		struct handshake {
-				const bool client;
 				WifiController* controller;
-				const unsigned long MAX_HANDSHAKE_TIME = 2000;
-				bool handshooked   = false;	 // True on handshake recieve
+				bool client;
+				const unsigned long MAX_HANDSHAKE_TIME = 5000;
+				bool handshooked   = false;	 // True on handshake receive
 				bool sendHandshake = false;	 // Did we send a request
 				unsigned long lastHandshakeTime
 					= 0;  // Last time a handshake succeded
@@ -200,31 +219,34 @@ class WifiController {
 				void send() {
 					handshakeSendTime = millis();
 					sendHandshake	  = true;
+					Serial.println("Server: Sent handshake");
 					controller->sendData(handshakePacket);
 				}
 
-				void recieved() {
+				void received() {
 					lastHandshakeTime = millis();
 					handshooked		  = true;
 					sendHandshake	  = false;
+					Serial.println("Server: Received handshake");
 					if (!client) send();
 				}
 
 				void tickServer() {
 					if (millis() - lastHandshakeTime
-						> MAX_HANDSHAKE_TIME + 150) {
+						> MAX_HANDSHAKE_TIME + 300) {
 						handshooked = false;
 					}
 				}
 
 				void tickClient() {
-					if (millis() - lastHandshakeTime < MAX_HANDSHAKE_TIME)
-						return;
+					bool time
+						= millis() - lastHandshakeTime < MAX_HANDSHAKE_TIME;
+					if (time) { return; }
 					if (!sendHandshake) {
 						send();
 						return;
 					}
-					if (millis() - handshakeSendTime > 100) {
+					if (millis() - handshakeSendTime > 500) {
 						handshooked = false;
 						send();
 					}
