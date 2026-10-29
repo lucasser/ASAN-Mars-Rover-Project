@@ -1,25 +1,20 @@
 #include <Arduino.h>
 #include <WString.h>
+#include "Rover.h"
 
-int joystick[2] = {A0, A1}; //x, y
+MotorData motors[2] = {
+	{2, 4, 3},
+	{5, 7, 6}
+};
+SensorData sensor = {8, 9};
 
-int button = 2;
-
-int pot = A2;
+Rover rover;
 
 void setup() {
 	Serial.begin(9600);
-	pinMode(button, INPUT_PULLUP);
+	rover.init(motors, sensor);
 }
 
 void loop() {
-  	Serial.print("Joystick X: ");
-  	Serial.println(analogRead(joystick[0]));
-  	Serial.print("Joystick Y: ");
-  	Serial.println(analogRead(joystick[1]));
-	Serial.print("Auton?: ");
-  	Serial.println((digitalRead(button)) ? "No" : "Yes");
-	Serial.print("Throttle: ");
-  	Serial.println(analogRead(pot));
-	delay(100);
+	rover.tick();
 }
