@@ -15,6 +15,10 @@ class HBMotor {	 // H-Bridge Motor
 			fwd	  = data.fwd;
 			rev	  = data.rev;
 			speed = data.speed;
+
+			pinMode(fwd, OUTPUT);
+			pinMode(rev, OUTPUT);
+			pinMode(speed, OUTPUT);
 		};
 
 		void getSpeed(int newSpeed);
@@ -65,6 +69,8 @@ class Rover {
 			// if (millis() - prevrun < 10) return; // Guard to not spam tick
 			sensor.tick();
 		}
+
+		int getDist() { return sensor.getDist(); }
 
 		void move() {}	// TODO: movement logic
 };
