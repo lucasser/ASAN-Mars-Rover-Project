@@ -15,14 +15,23 @@ Rover rover;
 struct DataPacket {
 		PacketType type;
 
-		int Jx;
-		int Jy;
-		int throttle;
+		int Jx		 = 0;
+		int Jy		 = 0;
+		int throttle = 0;
 
-		bool auton;
+		bool auton = 0;
 
 		int sensor;
-		// Add ctor for sensor
+		int autonState;
+
+		DataPacket() {}
+
+		DataPacket(int sensor, int autonState): sensor(sensor),
+												autonState(autonState) {
+			type = PacketType::State;
+		}
+
+		DataPacket(PacketType packet): type(packet) {}
 };
 
 DataPacket data;
@@ -43,8 +52,9 @@ unsigned long prevrun;
 void tick() {
 	if (millis() - prevrun < 20) return;
 	prevrun = millis();
-	if (wifi.active())
-		wifi.setData({PacketType::State, 0, 0, 0, 0, rover.getDist()});
+	if (wifi.active()) {
+		wifi.setData(DataPacket(rover.getDist(), rover.getState()));
+	}
 }
 
 void loop() {
