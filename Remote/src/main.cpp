@@ -45,6 +45,7 @@ const String pwd  = "password";
 
 const int autonSwitch = 2;
 const int joystick[2] = {A0, A1};
+const int throttle	  = 5;
 
 void setPinmodes() {
 	pinMode(autonSwitch, INPUT_PULLUP);
@@ -54,6 +55,10 @@ void setPinmodes() {
 
 JoystickData readJoystick() {
 	return {analogRead(joystick[0]), analogRead(joystick[1])};
+}
+
+int readThrottle() {
+	return analogRead(throttle);
 }
 
 void setup() {
@@ -70,7 +75,8 @@ void tick() {
 	if (millis() - prevrun < 10) return;
 	prevrun = millis();
 	if (wifi.active())
-		wifi.setData(DataPacket(readJoystick(), 0, !digitalRead(autonSwitch)));
+		wifi.setData(DataPacket(readJoystick(), readThrottle(),
+								!digitalRead(autonSwitch)));
 }
 
 void loop() {
