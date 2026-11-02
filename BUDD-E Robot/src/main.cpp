@@ -8,6 +8,12 @@ MotorData motors[2] = {
 	{2, 4, 3},
 	{5, 7, 6}
 };
+
+ServoMotorData smotors[2] = {
+	{3, 1 },
+	{4, -1}
+};
+
 SensorData sensor = {8, 9};
 
 Rover rover;
@@ -15,9 +21,9 @@ Rover rover;
 struct DataPacket {
 		PacketType type;
 
-		int Jx		 = 0;
-		int Jy		 = 0;
-		int throttle = 0;
+		int Jx		 = 0;  // 0 < < 1023
+		int Jy		 = 0;  // 0 < < 1023
+		int throttle = 0;  // 0 < < 1023
 
 		bool auton = 0;
 
@@ -43,7 +49,7 @@ const String pwd  = "password";
 
 void setup() {
 	Serial.begin(9600);
-	rover.init(motors, sensor);
+	rover.init(smotors, sensor);
 	wifi.begin(ssid, pwd, WifiControllerType::Client);
 }
 
@@ -62,7 +68,9 @@ void loop() {
 	rover.tick();
 	if (wifi.available()) {
 		data = wifi.getData();
-		rover.sendData({data.Jx, data.Jy, data.throttle, data.auton});
+		rover.sendData({map(data.Jx, 0, 1023, -90, 90),
+						map(data.Jy, 0, 1023, -90, 90),
+						map(data.throttle, 0, 1023, 0, 90), data.auton});
 	}
 	tick();
 }
