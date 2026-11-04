@@ -54,7 +54,13 @@ class ServoMotor {
 			servo.attach(data.signal);
 		};
 
-		int setSpeed(int speedval) { servo.write((speedval + 90) * rev); };
+		void setSpeed(int speedval) {
+			if (-2 < speedval && speedval < 2) {
+				servo.write(88);
+				return;
+			};
+			servo.write(map(speedval * rev, -90, 90, 0, 180));
+		};
 };
 
 struct SensorData {
@@ -89,7 +95,7 @@ struct RoverData {
 
 class Rover {
 	private:
-		const int TURN_TIME = 2000;
+		const int TURN_TIME = 350;
 		const int WALL_DIST = 10;
 
 		int turntime;
@@ -184,7 +190,17 @@ class Rover {
 		int getState() { return state; }
 
 		void move(int m1, int m2) {
-			motors[0].setSpeed(constrain(m1, -data.Throttle, data.Throttle));
-			motors[1].setSpeed(constrain(m2, -data.Throttle, data.Throttle));
+			if (m1 > 89 || m1 < -89) {
+				motors[0].setSpeed(m1);
+			} else {
+				motors[0].setSpeed(
+					constrain(m1, -data.Throttle, data.Throttle));
+			}
+			if (m2 > 89 || m2 < -89) {
+				motors[1].setSpeed(m2);
+			} else {
+				motors[1].setSpeed(
+					constrain(m2, -data.Throttle, data.Throttle));
+			}
 		}
 };

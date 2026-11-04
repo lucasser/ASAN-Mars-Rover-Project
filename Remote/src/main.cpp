@@ -40,12 +40,12 @@ DataPacket data;
 
 WifiController<DataPacket> wifi;
 
-const String ssid = "Team 113";
+const String ssid = "Team 111";
 const String pwd  = "password";
 
 const int autonSwitch = 2;
 const int joystick[2] = {A0, A1};
-const int throttle	  = 5;
+const int throttle	  = A2;
 
 void setPinmodes() {
 	pinMode(autonSwitch, INPUT_PULLUP);

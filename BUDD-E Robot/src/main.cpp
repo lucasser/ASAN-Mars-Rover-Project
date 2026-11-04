@@ -10,11 +10,11 @@ MotorData motors[2] = {
 };
 
 ServoMotorData smotors[2] = {
-	{3, 1 },
-	{4, -1}
+	{13, 1 },
+	{12, -1}
 };
 
-SensorData sensor = {8, 9};
+SensorData sensor = {4, 3};
 
 Rover rover;
 
@@ -44,7 +44,7 @@ DataPacket data;
 
 WifiController<DataPacket> wifi;
 
-const String ssid = "Team 113";
+const String ssid = "Team 111";
 const String pwd  = "password";
 
 void setup() {
@@ -68,8 +68,8 @@ void loop() {
 	rover.tick();
 	if (wifi.available()) {
 		data = wifi.getData();
-		rover.sendData({map(data.Jx, 0, 1023, -90, 90),
-						map(data.Jy, 0, 1023, -90, 90),
+		rover.sendData({map(data.Jx, 0, 1022, -90, 90),
+						map(data.Jy, 0, 1022, -90, 90),
 						map(data.throttle, 0, 1023, 0, 90), data.auton});
 	}
 	tick();
