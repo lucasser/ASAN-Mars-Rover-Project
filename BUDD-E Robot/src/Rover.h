@@ -1,6 +1,9 @@
+// 27
+
 #include <Servo.h>
 #include "Arduino.h"
 #include "USensor.h"
+#include "api/Common.h"
 
 struct MotorData {
 		int fwd, rev, speed;
@@ -52,11 +55,12 @@ class ServoMotor {
 		void init(ServoMotorData data) {
 			this->rev = data.rev;
 			servo.attach(data.signal);
+			servo.write(90);
 		};
 
 		void setSpeed(int speedval) {
 			if (-2 < speedval && speedval < 2) {
-				servo.write(88);
+				servo.write(90);
 				return;
 			};
 			servo.write(map(speedval * rev, -90, 90, 0, 180));
@@ -95,8 +99,8 @@ struct RoverData {
 
 class Rover {
 	private:
-		const int TURN_TIME = 350;
-		const int WALL_DIST = 10;
+		const int TURN_TIME = 600;
+		const int WALL_DIST = 28;
 
 		int turntime;
 
@@ -123,11 +127,15 @@ class Rover {
 			sensor.tick();
 			// if (millis() - prevrun < 10) return;
 			if (data.Auton) {
-				if (state == 5) { return; }
+				if (state == 6) { return; }
 				state = auton(state);
 			} else {
 				state = 0;
-				move(data.Jx + data.Jy, data.Jx - data.Jy);
+				if (data.Jx >= 0) {
+					moveSlow(data.Jx + data.Jy, data.Jx - data.Jy);
+				} else {
+					moveSlow(data.Jx - data.Jy, data.Jx + data.Jy);
+				}
 			}
 			prevrun = millis();
 		}
@@ -137,48 +145,55 @@ class Rover {
 			switch (state) {
 				case 0:	 // First straight
 					{
-						if (dist > WALL_DIST) {
-							move(90, 90);
-							return state;
-						}
-						move(0, 0);
+						move(90, 90);
 						turntime = millis();
 						return state + 1;
 					}
 				case 1:	 // First turn
 					{
-						if (millis() - turntime < TURN_TIME) {
-							move(-90, 90);
-							return state;
+						if (dist <= WALL_DIST) {
+							move(15, 90);
+							turntime = millis();
+							return state + 1;
 						}
-						return state + 1;
+						return state;
 					}
 				case 2:	 // Second straight
 					{
-						if (dist > WALL_DIST) {
+						if (millis() - turntime >= TURN_TIME) {
 							move(90, 90);
-							return state;
+							turntime = millis();
+							return state + 1;
 						}
-						move(0, 0);
-						turntime = millis();
-						return state + 1;
+
+						return state;
 					}
 				case 3:	 // Second turn
 					{
-						if (millis() - turntime < TURN_TIME) {
-							move(90, -90);
-							return state;
+						if (millis() - turntime >= 150) {
+							move(90, 15);
+							turntime = millis();
+							return state + 1;
 						}
-						return state + 1;
+
+						return state;
 					}
 				case 4:	 // Final straight
 					{
-						if (dist > WALL_DIST) {
+						if (millis() - turntime >= TURN_TIME) {
 							move(90, 90);
-							return state;
+							return state + 1;
 						}
-						move(0, 0);
-						return state + 1;
+
+						return state;
+					}
+				case 5:	 // done
+					{
+						if (dist <= 12) {
+							move(0, 0);
+							return state + 1;
+						}
+						return state;
 					}
 			}
 		}
@@ -190,17 +205,16 @@ class Rover {
 		int getState() { return state; }
 
 		void move(int m1, int m2) {
-			if (m1 > 89 || m1 < -89) {
-				motors[0].setSpeed(m1);
-			} else {
-				motors[0].setSpeed(
-					constrain(m1, -data.Throttle, data.Throttle));
+			motors[0].setSpeed(constrain(m1, -data.Throttle, data.Throttle));
+			motors[1].setSpeed(constrain(m2, -data.Throttle, data.Throttle));
+		}
+
+		void moveSlow(int m1, int m2) {
+			if (m1 != m2) {
+				m1 = m1 / 3;
+				m2 = m2 / 3;
 			}
-			if (m2 > 89 || m2 < -89) {
-				motors[1].setSpeed(m2);
-			} else {
-				motors[1].setSpeed(
-					constrain(m2, -data.Throttle, data.Throttle));
-			}
+			motors[0].setSpeed(constrain(m1, -data.Throttle, data.Throttle));
+			motors[1].setSpeed(constrain(m2, -data.Throttle, data.Throttle));
 		}
 };

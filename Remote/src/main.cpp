@@ -79,11 +79,21 @@ void tick() {
 								!digitalRead(autonSwitch)));
 }
 
+unsigned long time;
+float finaltime = 0;
+
 void loop() {
 	wifi.tick();
 	tick();
 	if (wifi.available()) {
 		data = wifi.getData();
+		if (data.autonState == 1) {
+			time	  = millis();
+			finaltime = 0;
+		}
+		if (data.autonState == 6 && !finaltime) finaltime = millis() - time;
+		if (finaltime) Serial.println(finaltime / 1000.0);
+		else Serial.println(data.sensor);
 		lcd.setCursor(0, 0);
 		lcd.print("Distance: ");
 		lcd.print(data.sensor);
