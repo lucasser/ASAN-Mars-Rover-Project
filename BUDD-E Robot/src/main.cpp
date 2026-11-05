@@ -10,8 +10,8 @@ MotorData motors[2] = {
 };
 
 ServoMotorData smotors[2] = {
-	{13, 1 },
-	{12, -1}
+	{12, 1 },
+	{13, -1}
 };
 
 SensorData sensor = {4, 3};
@@ -63,13 +63,17 @@ void tick() {
 	}
 }
 
+int deadzone(int val) {
+	return (-2 < val && val < 2) ? 0 : val;
+}
+
 void loop() {
 	wifi.tick();
 	rover.tick();
 	if (wifi.available()) {
 		data = wifi.getData();
-		rover.sendData({map(data.Jx, 0, 1022, -90, 90),
-						map(data.Jy, 0, 1022, -90, 90),
+		rover.sendData({deadzone(map(data.Jx, 0, 1022, -90, 90)),
+						deadzone(map(data.Jy, 0, 1022, -90, 90)),
 						map(data.throttle, 0, 1023, 0, 90), data.auton});
 	}
 	tick();
